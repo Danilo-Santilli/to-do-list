@@ -1,9 +1,57 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { auth } from '../../firebaseConnection';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
+
 function Register() {
-    return (
-      <div>
-        <h1>Página Register</h1>
-      </div>
-    );
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const navigate = useNavigate();
+
+  async function handleRegister(e){
+    e.preventDefault();
+    if (email !== '' && password !== '') {
+      await createUserWithEmailAndPassword(auth, email, password)
+      .then(()=>{
+        navigate('/admin', {replace: true});
+      })
+      .catch((error)=>{
+        console.log('Erro!');
+      })
+    } else{
+      alert('Preencha todos os campos!')
+    }
   }
-  
-  export default Register;
+
+  return (
+    <div className='home-container'>
+      <h1>Cadastre-se</h1>
+      <span>Crie sua conta.</span>
+          
+      <form action="" className='form' onSubmit={handleRegister}>
+        <input 
+        type="text" 
+        placeholder='Digite seu email:'
+        value={email}
+        onChange={(e)=> setEmail(e.target.value)}/>
+          
+        <input
+        type="password" 
+        placeholder='Digite sua senha:'
+        value={password}
+        onChange={(e)=> setPassword(e.target.value)}/>
+
+        <button type='submit'>Criar</button>
+      </form>
+
+      <Link className='button-link' to='/'>
+        Já possuí uma conta? Faça login.
+      </Link>
+    </div>
+  );
+}
+
+export default Register;
