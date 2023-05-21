@@ -1,17 +1,54 @@
 import './admin.css';
-import {useState} from 'react';
-import { auth } from '../../firebaseConnection';
+import {useState, useEffect} from 'react';
+import { auth, db } from '../../firebaseConnection';
 import { signOut } from 'firebase/auth';
+import { 
+    addDoc,
+    collection
+} from 'firebase/firestore';
 
 export default function Admin(){
 
     const [tarefaInput, setTarefaInput] = useState('');
+    const [user, setUser] = useState({});
 
-    function handleRegister(e){
+    useEffect(()=>{
+         // Função assíncrona para carregar os detalhes do usuário armazenados no localStorage
+        async function LoadTarefas(){
+            const userDetail = localStorage.getItem('@detailUser');
+
+            // Parse do JSON armazenado para objeto e atualização do estado do usuário
+            setUser(JSON.parse(userDetail))
+        }
+
+        LoadTarefas();
+    }, []);
+
+    async function handleRegister(e){
         e.preventDefault();
-        alert('ok');
+
+        // Verificação se o campo de entrada da tarefa está vazio
+        if (tarefaInput === '') {
+            alert('Digite sua tarefa.');
+            return;
+        }
+
+        // Adicionar um novo documento à coleção "tarefas" usando a função addDoc do Firebase Firestore
+        await addDoc(collection(db, 'tarefas'),{
+            tarefa: tarefaInput,
+            created: new Date(),
+            userUid: user?.uid // UID do usuário atualmente logado
+        })
+        .then(()=>{
+            console.log('Tarefa registrada');
+            setTarefaInput('');
+        })
+        .catch((error)=>{
+            console.log(`Erro: ${error}`);
+        })
     }
 
+    // Deslogar o usuário usando o Firebase Authentication
     async function handleLogout(){
         await signOut(auth);
     }
