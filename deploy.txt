@@ -1,0 +1,16 @@
+Criar a pasta _redirects contendo ' /* /index.html 200 ' 
+(sem aspas) dentro da pasta public CASO A APLICAÇÃO USE 
+REACT-ROUTER-DOM, ler as documentações para mais 
+informações;
+
+Criar conta na netlify;
+
+
+DIGITAR NO TERMINAL DA PASTA DO PROJETO:
+
+npm run build
+npm install -g netlify-cli
+netlify deploy --prod
+Responder as perguntas e em Publish diretory: ./build
+
+https://mellifluous-bavarois-29c1d9.netlify.app
