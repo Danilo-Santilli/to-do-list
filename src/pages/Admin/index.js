@@ -10,7 +10,8 @@ import {
     orderBy,
     where,
     deleteDoc,
-    doc
+    doc, 
+    updateDoc
 } from 'firebase/firestore';
 
 export default function Admin(){
@@ -18,6 +19,7 @@ export default function Admin(){
     const [tarefaInput, setTarefaInput] = useState('');
     const [user, setUser] = useState({});
     const [tarefas, setTarefas] = useState([]);
+    const [edit, setEdit] = useState({});
     
     useEffect(() => {
       async function LoadTarefas() {
@@ -61,6 +63,12 @@ export default function Admin(){
             alert('Digite sua tarefa.');
             return;
         }
+        
+        //Se o estado 'edit' possuir um 'id', ele está no modo de edição
+        if (edit?.id) {
+            handleUpdateTarefa();//chama a função de update
+            return;
+        }
 
         await addDoc(collection(db, 'tarefas'),{
             tarefa: tarefaInput,
@@ -81,12 +89,40 @@ export default function Admin(){
     }
 
     async function deleteTarefa(id){
-        // Referência ao documento da tarefa no Firestore
         const docRef = doc(db, 'tarefas', id);
-
-        // Deleta o documento da tarefa
         await deleteDoc(docRef);
     }
+
+    async function editTarefa(item){
+        setTarefaInput(item.tarefa);
+        setEdit(item);
+    }
+
+    async function handleUpdateTarefa() {
+        // Obtém a referência do documento da tarefa no banco de dados usando o ID da tarefa que está sendo editada
+        const docRef = doc(db, 'tarefas', edit?.id);
+      
+        // Atualiza o documento da tarefa com os novos dados, neste caso, apenas a propriedade "tarefa" será atualizada
+        await updateDoc(docRef, {
+          tarefa: tarefaInput,
+        })
+          .then(() => {
+            // Se a atualização for bem-sucedida, exibe uma mensagem de sucesso no console
+            console.log('Tarefa Atualizada');
+      
+            // Limpa o campo de entrada da tarefa e redefine o objeto "edit" para vazio
+            setTarefaInput('');
+            setEdit({});
+          })
+          .catch((error) => {
+            // Se ocorrer um erro durante a atualização, exibe uma mensagem de erro no console
+            console.log(`Erro: ${error}`);
+      
+            // Limpa o campo de entrada da tarefa e redefine o objeto "edit" para vazio
+            setTarefaInput('');
+            setEdit({});
+          });
+      }
 
     return(
         <div className='admin-container'>
@@ -98,17 +134,21 @@ export default function Admin(){
                 onChange={(e)=>{setTarefaInput(e.target.value)}}>
                 </textarea>
 
-                <button className='btn-register' type='submit'>Registrar tarefa</button>
+                {Object.keys(edit).length > 0 ? (
+                    // Se o objeto "edit" tiver alguma propriedade (ou seja, a tarefa está em modo de edição),
+                    // renderiza o botão "Atualizar tarefa" com estilo de fundo personalizado
+                    <button className='btn-register' style={{backgroundColor: '#6add39'}} type='submit'>Atualizar tarefa</button>
+                ) : (
+                    // Caso contrário, renderiza o botão "Registrar tarefa" padrão
+                    <button className='btn-register' type='submit'>Registrar tarefa</button>
+                )}
             </form>
 
-            {/*Passa por todos os elementos dentro do estado 'tarefas' e exibe no 'article'*/}
             {tarefas.map((item)=>(
                 <article key={item.id} className='list'>
                     <p>{item.tarefa}</p>
                     <div>
-                        <button>Editar</button>
-
-                        {/* Botão para concluir/deletar a tarefa */}
+                        <button onClick={()=> editTarefa(item)}>Editar</button>
                         <button onClick={()=>deleteTarefa(item.id)} className='btn-delete'>Concluir</button>
                     </div>
                 </article>
