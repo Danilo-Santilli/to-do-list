@@ -8,33 +8,32 @@ import {
     onSnapshot,
     query, 
     orderBy,
-    where
+    where,
+    deleteDoc,
+    doc
 } from 'firebase/firestore';
 
 export default function Admin(){
 
-    const [tarefaInput, setTarefaInput] = useState(''); // Estado para armazenar o valor do campo de entrada da tarefa
-    const [user, setUser] = useState({}); // Estado para armazenar os detalhes do usuário
-    const [tarefas, setTarefas] = useState([]); // Estado para armazenar a lista de tarefas
+    const [tarefaInput, setTarefaInput] = useState('');
+    const [user, setUser] = useState({});
+    const [tarefas, setTarefas] = useState([]);
     
     useEffect(() => {
       async function LoadTarefas() {
-        // Função assíncrona para carregar as tarefas relacionadas ao usuário atual do Firestore
         const userDetail = localStorage.getItem('@detailUser');
-        setUser(JSON.parse(userDetail)); // Parse do JSON armazenado para objeto e atualização do estado do usuário
+        setUser(JSON.parse(userDetail));
     
         if (userDetail) {
           const data = JSON.parse(userDetail);
           const tarefaRef = collection(db, 'tarefas');
     
-          // Query para buscar as tarefas do usuário atual, ordenadas por data de criação decrescente
           const q = query(
             tarefaRef,
             orderBy('created', 'desc'),
             where('userUid', '==', data?.uid)
           );
     
-          // Adiciona um observador às tarefas da query
           const unsub = onSnapshot(q, (snapshot) => {
             let lista = [];
     
@@ -47,12 +46,12 @@ export default function Admin(){
             });
     
             console.log(lista);
-            setTarefas(lista); // Atualiza o estado das tarefas com a lista de tarefas obtida
+            setTarefas(lista);
           });
         }
       }
     
-      LoadTarefas(); // Chamada da função para carregar as tarefas quando o componente é montado
+      LoadTarefas();
     }, []);
 
     async function handleRegister(e){
@@ -81,6 +80,14 @@ export default function Admin(){
         await signOut(auth);
     }
 
+    async function deleteTarefa(id){
+        // Referência ao documento da tarefa no Firestore
+        const docRef = doc(db, 'tarefas', id);
+
+        // Deleta o documento da tarefa
+        await deleteDoc(docRef);
+    }
+
     return(
         <div className='admin-container'>
             <h1>Minhas tarefas</h1>
@@ -94,13 +101,19 @@ export default function Admin(){
                 <button className='btn-register' type='submit'>Registrar tarefa</button>
             </form>
 
-            <article className='list'>
-                <p>Estudar React</p>
-                <div>
-                    <button>Editar</button>
-                    <button className='btn-delete'>Excluir</button>
-                </div>
-            </article>
+            {/*Passa por todos os elementos dentro do estado 'tarefas' e exibe no 'article'*/}
+            {tarefas.map((item)=>(
+                <article key={item.id} className='list'>
+                    <p>{item.tarefa}</p>
+                    <div>
+                        <button>Editar</button>
+
+                        {/* Botão para concluir/deletar a tarefa */}
+                        <button onClick={()=>deleteTarefa(item.id)} className='btn-delete'>Concluir</button>
+                    </div>
+                </article>
+            ))}
+            
 
             <button className='btn-logout' onClick={handleLogout}>Sair</button>
         </div>
