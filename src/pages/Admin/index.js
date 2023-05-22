@@ -4,40 +4,69 @@ import { auth, db } from '../../firebaseConnection';
 import { signOut } from 'firebase/auth';
 import { 
     addDoc,
-    collection
+    collection,
+    onSnapshot,
+    query, 
+    orderBy,
+    where
 } from 'firebase/firestore';
 
 export default function Admin(){
 
-    const [tarefaInput, setTarefaInput] = useState('');
-    const [user, setUser] = useState({});
-
-    useEffect(()=>{
-         // Função assíncrona para carregar os detalhes do usuário armazenados no localStorage
-        async function LoadTarefas(){
-            const userDetail = localStorage.getItem('@detailUser');
-
-            // Parse do JSON armazenado para objeto e atualização do estado do usuário
-            setUser(JSON.parse(userDetail))
+    const [tarefaInput, setTarefaInput] = useState(''); // Estado para armazenar o valor do campo de entrada da tarefa
+    const [user, setUser] = useState({}); // Estado para armazenar os detalhes do usuário
+    const [tarefas, setTarefas] = useState([]); // Estado para armazenar a lista de tarefas
+    
+    useEffect(() => {
+      async function LoadTarefas() {
+        // Função assíncrona para carregar as tarefas relacionadas ao usuário atual do Firestore
+        const userDetail = localStorage.getItem('@detailUser');
+        setUser(JSON.parse(userDetail)); // Parse do JSON armazenado para objeto e atualização do estado do usuário
+    
+        if (userDetail) {
+          const data = JSON.parse(userDetail);
+          const tarefaRef = collection(db, 'tarefas');
+    
+          // Query para buscar as tarefas do usuário atual, ordenadas por data de criação decrescente
+          const q = query(
+            tarefaRef,
+            orderBy('created', 'desc'),
+            where('userUid', '==', data?.uid)
+          );
+    
+          // Adiciona um observador às tarefas da query
+          const unsub = onSnapshot(q, (snapshot) => {
+            let lista = [];
+    
+            snapshot.forEach((doc) => {
+              lista.push({
+                id: doc.id,
+                tarefa: doc.data().tarefa,
+                userUid: doc.data().userUid,
+              });
+            });
+    
+            console.log(lista);
+            setTarefas(lista); // Atualiza o estado das tarefas com a lista de tarefas obtida
+          });
         }
-
-        LoadTarefas();
+      }
+    
+      LoadTarefas(); // Chamada da função para carregar as tarefas quando o componente é montado
     }, []);
 
     async function handleRegister(e){
         e.preventDefault();
 
-        // Verificação se o campo de entrada da tarefa está vazio
         if (tarefaInput === '') {
             alert('Digite sua tarefa.');
             return;
         }
 
-        // Adicionar um novo documento à coleção "tarefas" usando a função addDoc do Firebase Firestore
         await addDoc(collection(db, 'tarefas'),{
             tarefa: tarefaInput,
             created: new Date(),
-            userUid: user?.uid // UID do usuário atualmente logado
+            userUid: user?.uid 
         })
         .then(()=>{
             console.log('Tarefa registrada');
@@ -48,7 +77,6 @@ export default function Admin(){
         })
     }
 
-    // Deslogar o usuário usando o Firebase Authentication
     async function handleLogout(){
         await signOut(auth);
     }
